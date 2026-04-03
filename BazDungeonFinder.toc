@@ -1,0 +1,12 @@
+## Interface: 120001
+## Title: BazDungeonFinder
+## Notes: Detached LFG queue status bar with rich dungeon and group info
+## Author: Baz4k
+## Version: 1
+## SavedVariables: BazDungeonFinderSV
+
+Core.lua
+QueueData.lua
+UI_Bar.lua
+UI_Details.lua
+Settings.lua
