@@ -75,10 +75,10 @@ function Queue:Update()
 
     self.queuedTime = GetTime() - self.queueStartTime
 
-    local hasData, _, tankNeeds, healerNeeds, dpsNeeds,
-          totalTanks, totalHealers, totalDPS, instanceType, _,
+    local hasData, leaderNeeds, tankNeeds, healerNeeds, dpsNeeds,
+          totalTanks, totalHealers, totalDPS, instanceType, instanceSubType,
           instanceName, averageWait, tankWait, healerWait, damageWait,
-          myWait = GetLFGQueueStats(cat, GetActiveQueueID(cat))
+          myWait, queuedTime = GetLFGQueueStats(cat, GetActiveQueueID(cat))
 
     if hasData then
         self.myWait       = myWait or 0
@@ -128,13 +128,18 @@ eventFrame:RegisterEvent("LFG_PROPOSAL_SHOW")
 eventFrame:RegisterEvent("LFG_PROPOSAL_DONE")
 eventFrame:RegisterEvent("LFG_PROPOSAL_FAILED")
 eventFrame:RegisterEvent("LFG_PROPOSAL_SUCCEEDED")
+eventFrame:RegisterEvent("LFG_COMPLETION_REWARD")
 eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 eventFrame:SetScript("OnEvent", function(_, event)
     if event == "LFG_PROPOSAL_SHOW" then
         Queue.proposalActive = true
     elseif event == "LFG_PROPOSAL_FAILED" or event == "LFG_PROPOSAL_DONE"
         or event == "LFG_PROPOSAL_SUCCEEDED" then
+        Queue.proposalActive = false
+    elseif event == "LFG_COMPLETION_REWARD" or event == "PLAYER_ENTERING_WORLD" then
+        -- Entering dungeon or completing it — clear queue state
         Queue.proposalActive = false
     end
     Queue:Update()

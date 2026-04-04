@@ -280,6 +280,24 @@ function addon:OnSettingChanged(key, value)
     if addon.Queue.isQueued then RefreshBar() end
 end
 
+-- Hide bar when entering an instance (dungeon/raid)
+local instanceCheck = CreateFrame("Frame")
+instanceCheck:RegisterEvent("PLAYER_ENTERING_WORLD")
+instanceCheck:SetScript("OnEvent", function(_, _, isLogin, isReload)
+    if isLogin or isReload then return end
+    local _, instanceType = IsInInstance()
+    if instanceType == "party" or instanceType == "raid" then
+        addon.Queue.isQueued = false
+        addon.Queue.proposalActive = false
+        bar:Hide()
+        if addon.DetailsPanel then
+            addon.DetailsPanel:Hide()
+            expandBtn.isExpanded = false
+            expandBtn.tex:SetRotation(0)
+        end
+    end
+end)
+
 -- Micro menu: remove eyeball, resize container, steal animated eye
 local function SetupMicroMenu()
     if not QueueStatusButton then return end
@@ -370,9 +388,12 @@ end
 -- Setup bar: restore position, register Edit Mode, init subsystems
 function addon:SetupBar()
     local pos = self:GetSetting("position")
-    if pos then
+    if pos and pos.x and pos.y then
+        local ux, uy = UIParent:GetCenter()
+        local ues = UIParent:GetEffectiveScale()
+        local es = bar:GetEffectiveScale()
         bar:ClearAllPoints()
-        bar:SetPoint("CENTER", UIParent, "CENTER", pos.x, pos.y)
+        bar:SetPoint("CENTER", UIParent, "BOTTOMLEFT", (pos.x + ux * ues) / es, (pos.y + uy * ues) / es)
     end
     bar:SetWidth(self:GetSetting("barWidth") or 340)
     bar:SetAlpha(self:GetSetting("barOpacity") or 0.85)
