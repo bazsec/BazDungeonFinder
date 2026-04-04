@@ -1,3 +1,4 @@
+local addon = BazDF
 local PANEL_HEIGHT    = 180
 local PADDING         = 10
 local ROLE_SIZE       = 22
@@ -30,7 +31,7 @@ panel:SetBackdrop({
 })
 panel:SetBackdropColor(unpack(BG_COLOR))
 panel:SetBackdropBorderColor(unpack(EDGE_COLOR))
-BazDF.DetailsPanel = panel
+addon.DetailsPanel = panel
 
 -- Group composition header
 local groupLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -150,7 +151,7 @@ proposalFrame.bar.bg:SetColorTexture(0.1, 0.1, 0.12, 0.8)
 
 local proposalElapsed = 0
 proposalFrame:SetScript("OnUpdate", function(_, dt)
-    if not BazDF.Queue.proposalActive then
+    if not addon.Queue.proposalActive then
         proposalElapsed = 0
         return
     end

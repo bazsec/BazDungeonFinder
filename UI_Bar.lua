@@ -1,3 +1,7 @@
+-- BazDungeonFinder Bar UI
+-- Queue status bar with Edit Mode integration via BazCore
+
+local addon = BazDF
 local BAR_HEIGHT   = 82
 local ICON_SIZE    = 18
 local PADDING      = 12
@@ -33,7 +37,7 @@ bar:SetBackdrop({
 })
 bar:SetBackdropColor(unpack(BG_COLOR))
 bar:SetBackdropBorderColor(unpack(EDGE_COLOR))
-BazDF.Bar = bar
+addon.Bar = bar
 
 -- Green glow (behind bar)
 local glowFrame = CreateFrame("Frame", nil, bar)
@@ -53,21 +57,6 @@ glowPulse:SetToAlpha(0.10)
 glowPulse:SetDuration(2.0)
 glowPulse:SetSmoothing("IN_OUT")
 glowAG:Play()
-
--- Dragging
-bar:SetMovable(true)
-bar:EnableMouse(true)
-bar:RegisterForDrag("LeftButton")
-bar:SetScript("OnDragStart", function(self)
-    if not BazDF:GetSetting("locked") then self:StartMoving() end
-end)
-bar:SetScript("OnDragStop", function(self)
-    self:StopMovingOrSizing()
-    local x, y = self:GetCenter()
-    local ux, uy = UIParent:GetCenter()
-    BazDF:SetSetting("posX", x - ux)
-    BazDF:SetSetting("posY", y - uy)
-end)
 
 -- Eye section (left side)
 local eyeBg = bar:CreateTexture(nil, "BACKGROUND", nil, 1)
@@ -96,7 +85,7 @@ leaveBtn.tex:SetAllPoints()
 leaveBtn.tex:SetAtlas("common-icon-redx")
 leaveBtn.tex:SetVertexColor(0.7, 0.3, 0.3)
 leaveBtn:SetScript("OnClick", function()
-    if BazDF.Queue.category then LeaveLFG(BazDF.Queue.category) end
+    if addon.Queue.category then LeaveLFG(addon.Queue.category) end
 end)
 leaveBtn:SetScript("OnEnter", function(self)
     self.tex:SetVertexColor(1, 0.4, 0.4)
@@ -122,17 +111,17 @@ expandBtn:SetScript("OnClick", function(self)
     self.isExpanded = not self.isExpanded
     if self.isExpanded then
         self.tex:SetRotation(math.pi)
-        if BazDF.DetailsPanel then BazDF.DetailsPanel:Show() end
+        if addon.DetailsPanel then addon.DetailsPanel:Show() end
     else
         self.tex:SetRotation(0)
-        if BazDF.DetailsPanel then BazDF.DetailsPanel:Hide() end
+        if addon.DetailsPanel then addon.DetailsPanel:Hide() end
     end
 end)
 expandBtn:SetScript("OnEnter", function(self) self.tex:SetVertexColor(1, 1, 1) end)
 expandBtn:SetScript("OnLeave", function(self) self.tex:SetVertexColor(0.7, 0.7, 0.7) end)
 bar.expandBtn = expandBtn
 
--- Row 1: Title (centered in content area)
+-- Row 1: Title
 local titleText = bar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 titleText:SetPoint("TOP", bar, "TOP", (CONTENT_LEFT - PADDING) / 2, -6)
 titleText:SetJustifyH("CENTER")
@@ -140,7 +129,7 @@ titleText:SetText("Dungeon Finder")
 titleText:SetTextColor(0.9, 0.8, 0.5)
 bar.titleText = titleText
 
--- Row 1b: Dungeon name centered below title
+-- Row 1b: Dungeon name
 local dungeonText = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 dungeonText:SetPoint("TOP", titleText, "BOTTOM", 0, -2)
 dungeonText:SetJustifyH("CENTER")
@@ -183,7 +172,7 @@ local avgWaitValue = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmal
 avgWaitValue:SetPoint("LEFT", avgWaitLabel, "RIGHT", 4, 0)
 avgWaitValue:SetTextColor(1, 1, 1)
 
--- Row 3: In Queue timer (centered)
+-- Row 3: In Queue timer
 local queueTimeLabel = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 queueTimeLabel:SetText("In Queue:")
 queueTimeLabel:SetTextColor(DIM_COLOR[1], DIM_COLOR[2], DIM_COLOR[3])
@@ -210,37 +199,13 @@ end
 bar:HookScript("OnSizeChanged", LayoutRows)
 bar:HookScript("OnShow", LayoutRows)
 
--- Right-click menu
-bar:SetScript("OnMouseDown", function(_, button)
-    if button ~= "RightButton" then return end
-    local menu = CreateFrame("Frame", "BazDFContextMenu", UIParent, "UIDropDownMenuTemplate")
-    UIDropDownMenu_Initialize(menu, function()
-        local info = UIDropDownMenu_CreateInfo()
-        info.text = "Lock Position"
-        info.checked = BazDF:GetSetting("locked")
-        info.isNotRadio = true
-        info.func = function() BazDF:SetSetting("locked", not BazDF:GetSetting("locked")) end
-        UIDropDownMenu_AddButton(info)
-
-        info = UIDropDownMenu_CreateInfo()
-        info.text = "Settings"
-        info.notCheckable = true
-        info.func = function()
-            if BazDF.SettingsCategory then Settings.OpenToCategory(BazDF.SettingsCategory:GetID()) end
-        end
-        UIDropDownMenu_AddButton(info)
-    end, "MENU")
-    ToggleDropDownMenu(1, nil, menu, "cursor", 0, 0)
-end)
-
 -- Refresh display
 local function RefreshBar()
-    local Q = BazDF.Queue
+    local Q = addon.Queue
     if not Q.isQueued then return end
 
     dungeonText:SetText(Q.dungeonName ~= "" and Q.dungeonName or "")
 
-    -- Role counts: found = total - needs, max = total (Blizzard's formula)
     local function UpdateSlot(slot, total, needs)
         local max = total or 0
         local found = max - (needs or 0)
@@ -276,7 +241,7 @@ bar:SetScript("OnUpdate", function(_, dt)
     elapsed = elapsed + dt
     if elapsed < 1 then return end
     elapsed = 0
-    local Q = BazDF.Queue
+    local Q = addon.Queue
     if Q.isQueued and Q.queueStartTime > 0 then
         Q.queuedTime = GetTime() - Q.queueStartTime
         queueTimeValue:SetText(Q:FormatTime(Q.queuedTime))
@@ -284,13 +249,13 @@ bar:SetScript("OnUpdate", function(_, dt)
 end)
 
 -- Auto-show/hide on queue state change
-function BazDF:OnQueueUpdate()
+function addon:OnQueueUpdate()
     local Q = self.Queue
     if Q.isQueued then
         if not bar:IsShown() and self:GetSetting("autoShow") then
             bar:SetAlpha(0)
             bar:Show()
-            UIFrameFadeIn(bar, FADE_TIME, 0, self:GetSetting("barOpacity"))
+            UIFrameFadeIn(bar, FADE_TIME, 0, self:GetSetting("barOpacity") or 0.85)
         end
         RefreshBar()
         if self.RefreshDetails then self:RefreshDetails() end
@@ -299,8 +264,8 @@ function BazDF:OnQueueUpdate()
         C_Timer.After(FADE_TIME, function()
             if not Q.isQueued then
                 bar:Hide()
-                if BazDF.DetailsPanel then
-                    BazDF.DetailsPanel:Hide()
+                if addon.DetailsPanel then
+                    addon.DetailsPanel:Hide()
                     expandBtn.isExpanded = false
                     expandBtn.tex:SetRotation(0)
                 end
@@ -309,10 +274,10 @@ function BazDF:OnQueueUpdate()
     end
 end
 
-function BazDF:OnSettingChanged(key, value)
+function addon:OnSettingChanged(key, value)
     if key == "barWidth" then bar:SetWidth(value)
     elseif key == "barOpacity" then bar:SetAlpha(value) end
-    if BazDF.Queue.isQueued then RefreshBar() end
+    if addon.Queue.isQueued then RefreshBar() end
 end
 
 -- Micro menu: remove eyeball, resize container, steal animated eye
@@ -370,7 +335,7 @@ local function SetupMicroMenu()
 end
 
 local function SetupMenuFade()
-    if not MicroMenuContainer or not BazDF:GetSetting("fadeMenuBar") then return end
+    if not MicroMenuContainer or not addon:GetSetting("fadeMenuBar") then return end
     MicroMenuContainer:SetAlpha(0)
     local isHovered = false
     local fadeTimer
@@ -396,33 +361,80 @@ local function SetupMenuFade()
 end
 
 local function SetupBagsHide()
-    if not BagsBar or not BazDF:GetSetting("hideBagsBar") then return end
+    if not BagsBar or not addon:GetSetting("hideBagsBar") then return end
     BagsBar:Hide()
-    BagsBar:SetParent(BazDF.hiddenFrame)
+    BagsBar:SetParent(addon.hiddenFrame or CreateFrame("Frame"))
     hooksecurefunc(BagsBar, "Show", function(self) self:Hide() end)
 end
 
--- Init on login
-local initFrame = CreateFrame("Frame")
-initFrame:RegisterEvent("PLAYER_LOGIN")
-initFrame:SetScript("OnEvent", function(self)
-    local x, y = BazDF:GetSetting("posX"), BazDF:GetSetting("posY")
-    if x and y then
+-- Setup bar: restore position, register Edit Mode, init subsystems
+function addon:SetupBar()
+    local pos = self:GetSetting("position")
+    if pos then
         bar:ClearAllPoints()
-        bar:SetPoint("CENTER", UIParent, "CENTER", x, y)
+        bar:SetPoint("CENTER", UIParent, "CENTER", pos.x, pos.y)
     end
-    bar:SetWidth(BazDF:GetSetting("barWidth"))
-    bar:SetAlpha(BazDF:GetSetting("barOpacity"))
+    bar:SetWidth(self:GetSetting("barWidth") or 340)
+    bar:SetAlpha(self:GetSetting("barOpacity") or 0.85)
+
+    -- Register with BazCore Edit Mode
+    BazCore:RegisterEditModeFrame(bar, {
+        label = "BazDungeonFinder",
+        addonName = "BazDungeonFinder",
+        positionKey = "position",
+        defaultPosition = { x = 0, y = 0 },
+
+        settings = {
+            { type = "slider", key = "barWidth", label = "Bar Width", section = "Appearance",
+              min = 200, max = 500, step = 10,
+              get = function() return addon:GetSetting("barWidth") or 340 end,
+              set = function(v)
+                  addon:SetSetting("barWidth", v)
+                  bar:SetWidth(v)
+              end },
+            { type = "slider", key = "barOpacity", label = "Bar Opacity", section = "Appearance",
+              min = 30, max = 100, step = 5,
+              format = function(v) return math.floor(v + 0.5) .. "%" end,
+              get = function() return math.floor((addon:GetSetting("barOpacity") or 0.85) * 100 + 0.5) end,
+              set = function(v)
+                  addon:SetSetting("barOpacity", v / 100)
+                  bar:SetAlpha(v / 100)
+              end },
+            { type = "nudge", section = "Appearance" },
+
+            { type = "checkbox", key = "autoShow", label = "Auto Show/Hide", section = "Behavior",
+              get = function() return addon:GetSetting("autoShow") ~= false end,
+              set = function(v) addon:SetSetting("autoShow", v) end },
+        },
+
+        actions = {
+            { label = "Reset Position", builtin = "resetPosition" },
+        },
+
+        onEnter = function(f)
+            if not f:IsShown() then
+                f:SetAlpha(addon:GetSetting("barOpacity") or 0.85)
+                f:Show()
+                f._bazEditShown = true
+            end
+        end,
+
+        onExit = function(f)
+            if f._bazEditShown and not addon.Queue.isQueued then
+                f:Hide()
+                f._bazEditShown = nil
+            end
+        end,
+    })
 
     SetupMicroMenu()
     SetupMenuFade()
     SetupBagsHide()
     LayoutRows()
 
-    BazDF.Queue:Update()
-    if BazDF.Queue.isQueued then
+    self.Queue:Update()
+    if self.Queue.isQueued then
         bar:Show()
         RefreshBar()
     end
-    self:UnregisterEvent("PLAYER_LOGIN")
-end)
+end

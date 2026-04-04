@@ -1,39 +1,106 @@
+-- BazDungeonFinder Core
+-- Addon lifecycle via BazCore framework
+
 local ADDON_NAME = "BazDungeonFinder"
 
-BazDF = BazDF or {}
-BazDF.Settings = {}
-BazDF.hiddenFrame = CreateFrame("Frame")
-BazDF.hiddenFrame:Hide()
+local addon
+addon = BazCore:RegisterAddon(ADDON_NAME, {
+    title = "BazDungeonFinder",
+    savedVariable = "BazDungeonFinderSV",
+    profiles = true,
+    defaults = {
+        barWidth      = 340,
+        barOpacity    = 0.85,
+        autoShow      = true,
+        showEstWait   = true,
+        showRoleIcons = true,
+        hideBagsBar   = false,
+        fadeMenuBar   = false,
+        position      = nil,
+    },
 
-local DEFAULTS = {
-    barWidth      = 340,
-    barOpacity    = 0.85,
-    locked        = false,
-    autoShow      = true,
-    showEstWait   = true,
-    showRoleIcons = true,
-    hideBagsBar   = false,
-    fadeMenuBar   = false,
-    posX          = nil,
-    posY          = nil,
-}
+    slash = { "/bdf", "/bazdungeonfinder" },
+    commands = {
+        reset = {
+            desc = "Reset bar position",
+            handler = function()
+                addon:ResetPosition()
+                addon:Print("Position reset.")
+            end,
+        },
+        show = {
+            desc = "Show the bar",
+            handler = function()
+                if addon.Bar then addon.Bar:Show() end
+            end,
+        },
+        hide = {
+            desc = "Hide the bar",
+            handler = function()
+                if addon.Bar then addon.Bar:Hide() end
+            end,
+        },
+        test = {
+            desc = "Show the bar for testing",
+            handler = function()
+                if addon.Bar then
+                    addon.Bar:Show()
+                    addon.Bar:SetAlpha(addon:GetSetting("barOpacity") or 0.85)
+                end
+            end,
+        },
+    },
 
-function BazDF:GetSetting(key)
-    local db = BazDungeonFinderSV and BazDungeonFinderSV.settings
-    if db and db[key] ~= nil then return db[key] end
-    return DEFAULTS[key]
+    minimap = {
+        label = "BazDungeonFinder",
+        icon = 134030,
+    },
+
+    onReady = function(self)
+        self:SetupBar()
+    end,
+})
+
+-- db proxy for backward compatibility
+local dbProxy = {}
+local profileProxy = setmetatable({}, {
+    __index = function(_, key)
+        local sv = _G["BazDungeonFinderSV"]
+        if not sv then return nil end
+        local profileName = BazCore:GetActiveProfile(ADDON_NAME)
+        local profile = sv.profiles and sv.profiles[profileName]
+        if profile then return profile[key] end
+        return nil
+    end,
+    __newindex = function(_, key, value)
+        local sv = _G["BazDungeonFinderSV"]
+        if not sv then return end
+        local profileName = BazCore:GetActiveProfile(ADDON_NAME)
+        if not sv.profiles then sv.profiles = {} end
+        if not sv.profiles[profileName] then sv.profiles[profileName] = {} end
+        sv.profiles[profileName][key] = value
+    end,
+})
+dbProxy.profile = profileProxy
+addon.db = dbProxy
+
+function addon:GetSetting(key)
+    return self.db.profile[key]
 end
 
-function BazDF:SetSetting(key, value)
-    BazDungeonFinderSV = BazDungeonFinderSV or {}
-    BazDungeonFinderSV.settings = BazDungeonFinderSV.settings or {}
-    BazDungeonFinderSV.settings[key] = value
-    BazDF.Settings[key] = value
-    if BazDF.OnSettingChanged then
-        BazDF:OnSettingChanged(key, value)
+function addon:SetSetting(key, value)
+    self.db.profile[key] = value
+end
+
+function addon:ResetPosition()
+    self:SetSetting("position", nil)
+    if self.Bar then
+        self.Bar:ClearAllPoints()
+        self.Bar:SetPoint("TOP", UIParent, "TOP", 0, -100)
     end
 end
 
+-- Reload prompt for settings that require it
 StaticPopupDialogs["BAZDUNGEONFINDER_RELOAD"] = {
     text = "This change requires a UI reload. Reload now?",
     button1 = "Reload",
@@ -44,52 +111,5 @@ StaticPopupDialogs["BAZDUNGEONFINDER_RELOAD"] = {
     hideOnEscape = true,
 }
 
-local initFrame = CreateFrame("Frame")
-initFrame:RegisterEvent("ADDON_LOADED")
-initFrame:SetScript("OnEvent", function(self, _, arg1)
-    if arg1 ~= ADDON_NAME then return end
-    BazDungeonFinderSV = BazDungeonFinderSV or {}
-    BazDungeonFinderSV.settings = BazDungeonFinderSV.settings or {}
-    BazDF.DB = BazDungeonFinderSV
-    for k in pairs(DEFAULTS) do
-        BazDF.Settings[k] = BazDF:GetSetting(k)
-    end
-    print("|cff3399ffBazDungeonFinder|r loaded. Type |cff00ff00/bdf|r for commands.")
-    self:UnregisterEvent("ADDON_LOADED")
-end)
-
-SLASH_BAZDUNGEONFINDER1 = "/bdf"
-SLASH_BAZDUNGEONFINDER2 = "/bazdungeonfinder"
-SlashCmdList["BAZDUNGEONFINDER"] = function(msg)
-    local cmd = strlower(strtrim(msg))
-    if cmd == "lock" then
-        BazDF:SetSetting("locked", true)
-        print("|cff3399ffBazDungeonFinder|r: Bar locked.")
-    elseif cmd == "unlock" then
-        BazDF:SetSetting("locked", false)
-        print("|cff3399ffBazDungeonFinder|r: Bar unlocked. Drag to reposition.")
-    elseif cmd == "reset" then
-        BazDF:SetSetting("posX", nil)
-        BazDF:SetSetting("posY", nil)
-        if BazDF.Bar then
-            BazDF.Bar:ClearAllPoints()
-            BazDF.Bar:SetPoint("TOP", UIParent, "TOP", 0, -100)
-        end
-        print("|cff3399ffBazDungeonFinder|r: Position reset.")
-    elseif cmd == "settings" then
-        if BazDF.SettingsCategory then
-            Settings.OpenToCategory(BazDF.SettingsCategory:GetID())
-        end
-    elseif cmd == "show" then
-        if BazDF.Bar then BazDF.Bar:Show() end
-    elseif cmd == "hide" then
-        if BazDF.Bar then BazDF.Bar:Hide() end
-    else
-        print("|cff3399ffBazDungeonFinder|r commands:")
-        print("  |cff00ff00/bdf lock|r - Lock bar position")
-        print("  |cff00ff00/bdf unlock|r - Unlock bar position")
-        print("  |cff00ff00/bdf reset|r - Reset bar position")
-        print("  |cff00ff00/bdf settings|r - Open settings")
-        print("  |cff00ff00/bdf show|r / |cff00ff00hide|r - Toggle bar")
-    end
-end
+-- Make addon accessible for other files
+BazDF = addon

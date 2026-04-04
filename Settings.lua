@@ -1,126 +1,129 @@
-local PAD    = 16
-local CBSIZE = 20
+-- BazDungeonFinder Settings
+-- BazCore OptionsPanel integration
 
-local function ReloadPrompt()
-    StaticPopup_Show("BAZDUNGEONFINDER_RELOAD")
+local ADDON_NAME = "BazDungeonFinder"
+local addon = BazDF
+
+local function GetOptionsTable()
+    return {
+        name = "BazDungeonFinder",
+        subtitle = "Detached LFG queue status bar",
+        type = "group",
+        args = {
+            appearanceHeader = {
+                order = 1,
+                type = "header",
+                name = "Appearance",
+            },
+            barWidth = {
+                order = 2,
+                type = "range",
+                name = "Bar Width",
+                min = 200, max = 500, step = 10,
+                get = function() return addon:GetSetting("barWidth") or 340 end,
+                set = function(_, val)
+                    addon:SetSetting("barWidth", val)
+                    if addon.Bar then addon.Bar:SetWidth(val) end
+                end,
+            },
+            barOpacity = {
+                order = 3,
+                type = "range",
+                name = "Bar Opacity",
+                min = 0.3, max = 1.0, step = 0.05,
+                get = function() return addon:GetSetting("barOpacity") or 0.85 end,
+                set = function(_, val)
+                    addon:SetSetting("barOpacity", val)
+                    if addon.Bar then addon.Bar:SetAlpha(val) end
+                end,
+            },
+
+            behaviorHeader = {
+                order = 10,
+                type = "header",
+                name = "Behavior",
+            },
+            autoShow = {
+                order = 11,
+                type = "toggle",
+                name = "Auto Show/Hide",
+                desc = "Automatically show when queued, hide when not",
+                get = function() return addon:GetSetting("autoShow") ~= false end,
+                set = function(_, val) addon:SetSetting("autoShow", val) end,
+            },
+
+            displayHeader = {
+                order = 20,
+                type = "header",
+                name = "Display",
+            },
+            showEstWait = {
+                order = 21,
+                type = "toggle",
+                name = "Show Estimated Wait",
+                desc = "Display the estimated wait time on the bar",
+                get = function() return addon:GetSetting("showEstWait") ~= false end,
+                set = function(_, val) addon:SetSetting("showEstWait", val) end,
+            },
+            showRoleIcons = {
+                order = 22,
+                type = "toggle",
+                name = "Show Role Icons",
+                desc = "Display your queued role icons on the bar",
+                get = function() return addon:GetSetting("showRoleIcons") ~= false end,
+                set = function(_, val) addon:SetSetting("showRoleIcons", val) end,
+            },
+
+            uiHeader = {
+                order = 30,
+                type = "header",
+                name = "UI Elements",
+            },
+            hideBagsBar = {
+                order = 31,
+                type = "toggle",
+                name = "Hide Bags Bar",
+                desc = "Hide the bag slot buttons (requires reload)",
+                get = function() return addon:GetSetting("hideBagsBar") or false end,
+                set = function(_, val)
+                    addon:SetSetting("hideBagsBar", val)
+                    StaticPopup_Show("BAZDUNGEONFINDER_RELOAD")
+                end,
+            },
+            fadeMenuBar = {
+                order = 32,
+                type = "toggle",
+                name = "Fade Micro Menu",
+                desc = "Hide the micro menu until hovered (requires reload)",
+                get = function() return addon:GetSetting("fadeMenuBar") or false end,
+                set = function(_, val)
+                    addon:SetSetting("fadeMenuBar", val)
+                    StaticPopup_Show("BAZDUNGEONFINDER_RELOAD")
+                end,
+            },
+
+            actionsHeader = {
+                order = 90,
+                type = "header",
+                name = "",
+            },
+            resetPos = {
+                order = 91,
+                type = "execute",
+                name = "Reset Position",
+                func = function() addon:ResetPosition(); addon:Print("Position reset.") end,
+            },
+        },
+    }
 end
 
-local function InitSettings()
-    local panel = CreateFrame("Frame", nil, UIParent)
-    panel:Hide()
+addon.config = addon.config or {}
+addon.config.onLoad = function(self)
+    BazCore:RegisterOptionsTable(ADDON_NAME, GetOptionsTable)
+    BazCore:AddToSettings(ADDON_NAME, "BazDungeonFinder")
 
-    local content = CreateFrame("Frame", nil, panel)
-    content:SetAllPoints()
-
-    local yPos = -PAD
-
-    local title = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", PAD, yPos)
-    title:SetText("BazDungeonFinder")
-    yPos = yPos - 20
-
-    local sub = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    sub:SetPoint("TOPLEFT", PAD, yPos)
-    sub:SetText("Detached LFG queue status bar")
-    sub:SetTextColor(0.6, 0.6, 0.6)
-    yPos = yPos - 26
-
-    local function Header(text)
-        yPos = yPos - 8
-        local h = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        h:SetPoint("TOPLEFT", PAD, yPos)
-        h:SetText(text)
-        yPos = yPos - 22
-    end
-
-    local function Checkbox(key, labelText, descText, onClick)
-        local cb = CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
-        cb:SetPoint("TOPLEFT", PAD, yPos)
-        cb:SetSize(CBSIZE, CBSIZE)
-        cb:SetChecked(BazDF:GetSetting(key))
-
-        local label = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        label:SetPoint("LEFT", cb, "RIGHT", 4, 0)
-        label:SetText(labelText)
-
-        cb:SetScript("OnClick", function(self)
-            BazDF:SetSetting(key, self:GetChecked())
-            if onClick then onClick(self:GetChecked()) end
-        end)
-        yPos = yPos - CBSIZE - 2
-
-        if descText then
-            local desc = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            desc:SetPoint("TOPLEFT", PAD + CBSIZE + 4, yPos)
-            desc:SetText(descText)
-            desc:SetTextColor(0.5, 0.5, 0.5)
-            desc:SetWidth(400)
-            desc:SetJustifyH("LEFT")
-            yPos = yPos - 16
-        end
-        yPos = yPos - 4
-    end
-
-    local function Slider(key, labelText, minVal, maxVal, step)
-        local label = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        label:SetPoint("TOPLEFT", PAD, yPos)
-        label:SetText(labelText)
-        yPos = yPos - 18
-
-        local slider = CreateFrame("Slider", nil, content, "OptionsSliderTemplate")
-        slider:SetPoint("TOPLEFT", PAD, yPos)
-        slider:SetWidth(250)
-        slider:SetMinMaxValues(minVal, maxVal)
-        slider:SetValueStep(step)
-        slider:SetObeyStepOnDrag(true)
-        slider:SetValue(BazDF:GetSetting(key))
-        slider.Low:SetText(tostring(minVal))
-        slider.High:SetText(tostring(maxVal))
-
-        local valText = slider:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        valText:SetPoint("LEFT", slider, "RIGHT", 10, 0)
-        valText:SetText(tostring(BazDF:GetSetting(key)))
-
-        slider:SetScript("OnValueChanged", function(_, value)
-            value = math.floor(value / step + 0.5) * step
-            BazDF:SetSetting(key, value)
-            valText:SetText(tostring(value))
-        end)
-        yPos = yPos - 30
-    end
-
-    Header("Appearance")
-    Slider("barWidth", "Bar Width", 200, 500, 10)
-    Slider("barOpacity", "Bar Opacity", 30, 100, 5)
-
-    yPos = yPos - 10
-    Header("Behavior")
-    Checkbox("locked", "Lock Position", "Prevent the bar from being dragged")
-    Checkbox("autoShow", "Auto Show/Hide", "Automatically show when queued, hide when not")
-
-    yPos = yPos - 10
-    Header("Display")
-    Checkbox("showEstWait", "Show Estimated Wait", "Display the estimated wait time on the bar")
-    Checkbox("showRoleIcons", "Show Role Icons", "Display your queued role icons on the bar")
-
-    yPos = yPos - 10
-    Header("UI Elements")
-    Checkbox("hideBagsBar", "Hide Bags Bar", "Hide the bag slot buttons", ReloadPrompt)
-    Checkbox("fadeMenuBar", "Fade Micro Menu", "Hide the micro menu until hovered", ReloadPrompt)
-
-    local category = Settings.RegisterCanvasLayoutCategory(panel, "BazDungeonFinder")
-    Settings.RegisterAddOnCategory(category)
-    BazDF.SettingsCategory = category
+    BazCore:RegisterOptionsTable(ADDON_NAME .. "-Profiles", function()
+        return BazCore:GetProfileOptionsTable(ADDON_NAME)
+    end)
+    BazCore:AddToSettings(ADDON_NAME .. "-Profiles", "Profiles", ADDON_NAME)
 end
-
--- Opacity slider stores 30-100, convert to 0.3-1.0 for rendering
-local origGetSetting = BazDF.GetSetting
-function BazDF:GetSetting(key)
-    local val = origGetSetting(self, key)
-    if key == "barOpacity" and type(val) == "number" and val > 1 then
-        return val / 100
-    end
-    return val
-end
-
-EventUtil.ContinueOnAddOnLoaded("BazDungeonFinder", InitSettings)
