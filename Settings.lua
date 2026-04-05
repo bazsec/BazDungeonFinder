@@ -38,6 +38,18 @@ local function GetOptionsTable()
                 end,
             },
 
+            barScale = {
+                order = 4,
+                type = "range",
+                name = "Bar Scale",
+                min = 0.5, max = 2.0, step = 0.05,
+                get = function() return (addon:GetSetting("barScale") or 100) / 100 end,
+                set = function(_, val)
+                    addon:SetSetting("barScale", math.floor(val * 100 + 0.5))
+                    if addon.Bar then addon.Bar:SetScale(val) end
+                end,
+            },
+
             behaviorHeader = {
                 order = 10,
                 type = "header",
@@ -57,8 +69,16 @@ local function GetOptionsTable()
                 type = "header",
                 name = "Display",
             },
-            showEstWait = {
+            showEyeTooltip = {
                 order = 21,
+                type = "toggle",
+                name = "Eye Tooltip",
+                desc = "Show queue info tooltip when hovering the eye icon",
+                get = function() return addon:GetSetting("showEyeTooltip") ~= false end,
+                set = function(_, val) addon:SetSetting("showEyeTooltip", val) end,
+            },
+            showEstWait = {
+                order = 22,
                 type = "toggle",
                 name = "Show Estimated Wait",
                 desc = "Display the estimated wait time on the bar",

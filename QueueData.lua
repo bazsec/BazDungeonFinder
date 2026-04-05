@@ -114,11 +114,12 @@ end
 
 function Queue:FormatEstimate(seconds)
     if not seconds or seconds <= 0 then return "N/A" end
-    local m = math.ceil(seconds / 60)
+    local m = math.floor(seconds / 60)
+    if m < 1 then return "< 1 Min" end
     if m >= 60 then
-        return string.format("~%dh%dm", math.floor(m / 60), m % 60)
+        return string.format("%d Hr %d Min", math.floor(m / 60), m % 60)
     end
-    return string.format("~%dm", m)
+    return string.format("%d Min", m)
 end
 
 local eventFrame = CreateFrame("Frame")

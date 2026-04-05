@@ -1,5 +1,21 @@
 # BazDungeonFinder Changelog
 
+## 004 - Dungeon Mode + Fixes
+- Bar now switches to dungeon info mode when inside an instance
+- Shows dungeon name, difficulty, boss progress, and duration timer
+- Boss tracking via C_ScenarioInfo (live updates on kill)
+- Eyeball tooltip shows Blizzard's native queue info on hover
+- Added bar scale setting with resize handle (Edit Mode only)
+- Eye tooltip toggle in settings
+- Wait time now uses personal estimate matching Blizzard's tooltip format
+- Live data refresh every second (role counts, wait times)
+- Fixed bar not hiding when entering dungeons
+- Fixed eye position after Edit Mode exit
+
+## 003 - Instance Detection
+- Bar hides when entering a dungeon/raid instance
+- Added PLAYER_ENTERING_WORLD and LFG_COMPLETION_REWARD event handling
+
 ## 002 - BazCore Migration
 - Migrated to BazCore framework (profiles, settings, slash commands)
 - Full Edit Mode integration via BazCore (overlays, grid snapping, settings popup)

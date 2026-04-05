@@ -223,7 +223,8 @@ local function RefreshBar()
     UpdateSlot(roleSlots.healer, Q.totalHealers,  Q.healerNeeds)
     UpdateSlot(roleSlots.dps,    Q.totalDPS,      Q.dpsNeeds)
 
-    avgWaitValue:SetText(Q.averageWait > 0 and Q:FormatEstimate(Q.averageWait) or "N/A")
+    local waitTime = Q.myWait > 0 and Q.myWait or Q.averageWait
+    avgWaitValue:SetText(waitTime > 0 and Q:FormatEstimate(waitTime) or "N/A")
     queueTimeValue:SetText(Q:FormatTime(Q.queuedTime))
 
     if Q.proposalActive then
@@ -235,18 +236,130 @@ local function RefreshBar()
     end
 end
 
+-- Instance mode state
+local inInstance = false
+local instanceStartTime = 0
+local instanceDeaths = 0
+
+-- Force eye position and z-order
+local function AnchorEye()
+    if QueueStatusButtonIcon and eyeHolder then
+        QueueStatusButtonIcon:SetParent(eyeHolder)
+        QueueStatusButtonIcon:ClearAllPoints()
+        QueueStatusButtonIcon:SetPoint("CENTER", eyeHolder, "CENTER")
+        QueueStatusButtonIcon:SetFrameLevel(bar:GetFrameLevel() + 20)
+        eyeHolder:SetFrameLevel(bar:GetFrameLevel() + 20)
+        QueueStatusButtonIcon:Show()
+    end
+end
+
+local function RefreshInstanceBar()
+    local name, instanceType, difficultyID, difficultyName = GetInstanceInfo()
+
+    titleText:SetTextColor(0.3, 0.85, 0.3)
+    titleText:SetText(difficultyName or "Dungeon")
+    dungeonText:SetText(name or "")
+
+
+    -- Boss progress via C_ScenarioInfo
+    local killed, total = 0, 0
+    if C_ScenarioInfo and C_ScenarioInfo.GetScenarioStepInfo then
+        local stepInfo = C_ScenarioInfo.GetScenarioStepInfo()
+        if stepInfo and stepInfo.numCriteria and stepInfo.numCriteria > 0 then
+            for i = 1, stepInfo.numCriteria do
+                local c = C_ScenarioInfo.GetCriteriaInfo(i)
+                if c and c.totalQuantity and c.totalQuantity > 0 then
+                    total = total + 1
+                    if c.quantity and c.quantity >= c.totalQuantity then
+                        killed = killed + 1
+                    end
+                end
+            end
+        end
+    end
+
+    -- Center boss and duration as single strings
+    local contentCenter = (CONTENT_LEFT - PADDING) / 2
+    local bossStr = total > 0 and (killed .. "/" .. total) or "—"
+
+    -- Use the label+value pair but center them together
+    avgWaitLabel:SetText("Bosses: " .. bossStr)
+    avgWaitLabel:SetFontObject(GameFontNormal)
+    avgWaitLabel:ClearAllPoints()
+    avgWaitLabel:SetPoint("CENTER", bar, "TOP", contentCenter, -44)
+    avgWaitLabel:SetJustifyH("CENTER")
+    if total > 0 and killed >= total then
+        avgWaitLabel:SetTextColor(0.3, 0.85, 0.3)
+    else
+        avgWaitLabel:SetTextColor(1, 1, 1)
+    end
+    avgWaitValue:SetText("")
+
+    queueTimeLabel:SetText("Duration: " .. addon.Queue:FormatTime(GetTime() - instanceStartTime))
+    queueTimeLabel:ClearAllPoints()
+    queueTimeLabel:SetPoint("CENTER", bar, "TOP", contentCenter, -64)
+    queueTimeLabel:SetJustifyH("CENTER")
+    queueTimeLabel:SetTextColor(0.5, 0.5, 0.55)
+    queueTimeValue:SetText("")
+
+    -- Hide role slots (not relevant in dungeon)
+    rolesGroup:Hide()
+    sep1:Hide()
+end
+
+local function EnterInstanceMode()
+    inInstance = true
+    instanceStartTime = GetTime()
+    instanceDeaths = 0
+    rolesGroup:Hide()
+    sep1:Hide()
+    bar:SetAlpha(addon:GetSetting("barOpacity") or 0.85)
+    bar:Show()
+    AnchorEye()
+    RefreshInstanceBar()
+end
+
+local function ExitInstanceMode()
+    inInstance = false
+    rolesGroup:Show()
+    sep1:Show()
+    avgWaitLabel:SetText("Avg Wait:")
+    avgWaitValue:SetTextColor(1, 1, 1)
+    queueTimeLabel:SetText("In Queue:")
+
+    if not addon.Queue.isQueued then
+        bar:Hide()
+    else
+        RefreshBar()
+    end
+end
+
 -- Timer tick (1s)
 local elapsed = 0
 bar:SetScript("OnUpdate", function(_, dt)
     elapsed = elapsed + dt
     if elapsed < 1 then return end
     elapsed = 0
-    local Q = addon.Queue
-    if Q.isQueued and Q.queueStartTime > 0 then
-        Q.queuedTime = GetTime() - Q.queueStartTime
-        queueTimeValue:SetText(Q:FormatTime(Q.queuedTime))
+
+    local _, instanceType = IsInInstance()
+    local isInDungeon = (instanceType == "party" or instanceType == "raid")
+
+    if isInDungeon and not inInstance then
+        EnterInstanceMode()
+    elseif not isInDungeon and inInstance then
+        ExitInstanceMode()
+    end
+
+    if inInstance then
+        RefreshInstanceBar()
+    elseif addon.Queue.isQueued and addon.Queue.queueStartTime > 0 then
+        addon.Queue.queuedTime = GetTime() - addon.Queue.queueStartTime
+        addon.Queue:Update()
+        RefreshBar()
     end
 end)
+
+bar:HookScript("OnShow", AnchorEye)
 
 -- Auto-show/hide on queue state change
 function addon:OnQueueUpdate()
@@ -280,36 +393,13 @@ function addon:OnSettingChanged(key, value)
     if addon.Queue.isQueued then RefreshBar() end
 end
 
--- Hide bar when entering an instance (dungeon/raid)
-local instanceCheck = CreateFrame("Frame")
-instanceCheck:RegisterEvent("PLAYER_ENTERING_WORLD")
-instanceCheck:SetScript("OnEvent", function(_, _, isLogin, isReload)
-    if isLogin or isReload then return end
-    local _, instanceType = IsInInstance()
-    if instanceType == "party" or instanceType == "raid" then
-        addon.Queue.isQueued = false
-        addon.Queue.proposalActive = false
-        bar:Hide()
-        if addon.DetailsPanel then
-            addon.DetailsPanel:Hide()
-            expandBtn.isExpanded = false
-            expandBtn.tex:SetRotation(0)
-        end
-    end
-end)
 
 -- Micro menu: remove eyeball, resize container, steal animated eye
 local function SetupMicroMenu()
     if not QueueStatusButton then return end
 
-    QueueStatusButton:SetAlpha(0)
-    QueueStatusButton:SetSize(0.001, 0.001)
+    -- Remove from micro menu layout (we'll reparent it to our eye holder)
     QueueStatusButton:ClearAllPoints()
-    QueueStatusButton:EnableMouse(false)
-    hooksecurefunc(QueueStatusButton, "Show", function(self)
-        self:SetAlpha(0)
-        self:EnableMouse(false)
-    end)
 
     if MicroMenu and MicroMenu.buttonsToLayout then
         for i = #MicroMenu.buttonsToLayout, 1, -1 do
@@ -339,16 +429,54 @@ local function SetupMicroMenu()
 
     C_Timer.After(0.2, function()
         if not QueueStatusButtonIcon then return end
+
+        -- Steal just the icon into our eye holder
         QueueStatusButtonIcon:SetParent(eyeHolder)
         QueueStatusButtonIcon:ClearAllPoints()
         QueueStatusButtonIcon:SetPoint("CENTER", eyeHolder, "CENTER")
         QueueStatusButtonIcon:SetSize(40, 40)
-        QueueStatusButtonIcon:SetFrameStrata("HIGH")
-        eyeHolder:SetFrameStrata("HIGH")
+        QueueStatusButtonIcon:SetFrameLevel(bar:GetFrameLevel() + 20)
+        eyeHolder:SetFrameLevel(bar:GetFrameLevel() + 20)
         QueueStatusButtonIcon:Show()
         for _, child in pairs({ QueueStatusButtonIcon:GetChildren() }) do
-            child:SetFrameStrata("HIGH")
+            child:SetFrameLevel(bar:GetFrameLevel() + 21)
         end
+
+        -- Block Blizzard from repositioning the icon
+        hooksecurefunc(QueueStatusButtonIcon, "SetPoint", function(self)
+            if self:GetParent() ~= eyeHolder then
+                self:SetParent(eyeHolder)
+            end
+        end)
+
+        -- Keep the original button at the eye position for tooltip anchoring
+        QueueStatusButton:SetParent(bar)
+        QueueStatusButton:ClearAllPoints()
+        QueueStatusButton:SetPoint("CENTER", eyeHolder, "CENTER")
+        QueueStatusButton:SetSize(40, 40)
+        QueueStatusButton:SetAlpha(0)
+        QueueStatusButton:EnableMouse(false)
+
+        -- Create our own invisible tooltip zone over the eye
+        local tooltipZone = CreateFrame("Frame", nil, bar)
+        tooltipZone:SetAllPoints(eyeHolder)
+        tooltipZone:SetFrameLevel(bar:GetFrameLevel() + 20)
+        tooltipZone:EnableMouse(true)
+        tooltipZone:SetScript("OnEnter", function(self)
+            if not addon:GetSetting("showEyeTooltip") then return end
+            if QueueStatusButton.OnEnter then
+                QueueStatusButton:OnEnter()
+            elseif QueueStatusButton:GetScript("OnEnter") then
+                QueueStatusButton:GetScript("OnEnter")(QueueStatusButton)
+            end
+        end)
+        tooltipZone:SetScript("OnLeave", function()
+            if QueueStatusButton.OnLeave then
+                QueueStatusButton:OnLeave()
+            elseif QueueStatusButton:GetScript("OnLeave") then
+                QueueStatusButton:GetScript("OnLeave")(QueueStatusButton)
+            end
+        end)
     end)
 end
 
@@ -387,6 +515,10 @@ end
 
 -- Setup bar: restore position, register Edit Mode, init subsystems
 function addon:SetupBar()
+    bar:SetWidth(self:GetSetting("barWidth") or 340)
+    bar:SetAlpha(self:GetSetting("barOpacity") or 0.85)
+    bar:SetScale((self:GetSetting("barScale") or 100) / 100)
+
     local pos = self:GetSetting("position")
     if pos and pos.x and pos.y then
         local ux, uy = UIParent:GetCenter()
@@ -395,8 +527,6 @@ function addon:SetupBar()
         bar:ClearAllPoints()
         bar:SetPoint("CENTER", UIParent, "BOTTOMLEFT", (pos.x + ux * ues) / es, (pos.y + uy * ues) / es)
     end
-    bar:SetWidth(self:GetSetting("barWidth") or 340)
-    bar:SetAlpha(self:GetSetting("barOpacity") or 0.85)
 
     -- Register with BazCore Edit Mode
     BazCore:RegisterEditModeFrame(bar, {
@@ -421,7 +551,26 @@ function addon:SetupBar()
                   addon:SetSetting("barOpacity", v / 100)
                   bar:SetAlpha(v / 100)
               end },
+            { type = "slider", key = "barScale", label = "Bar Scale", section = "Appearance",
+              min = 50, max = 200, step = 1,
+              format = function(v) return math.floor(v + 0.5) .. "%" end,
+              get = function() return addon:GetSetting("barScale") or 100 end,
+              set = function(v)
+                  local cx, cy = bar:GetCenter()
+                  local oldScale = bar:GetScale()
+                  if cx and cy then cx = cx * oldScale; cy = cy * oldScale end
+                  addon:SetSetting("barScale", v)
+                  bar:SetScale(v / 100)
+                  if cx and cy then
+                      bar:ClearAllPoints()
+                      bar:SetPoint("CENTER", UIParent, "BOTTOMLEFT", cx / (v / 100), cy / (v / 100))
+                  end
+              end },
             { type = "nudge", section = "Appearance" },
+
+            { type = "checkbox", key = "showEyeTooltip", label = "Eye Tooltip", section = "Display",
+              get = function() return addon:GetSetting("showEyeTooltip") ~= false end,
+              set = function(v) addon:SetSetting("showEyeTooltip", v) end },
 
             { type = "checkbox", key = "autoShow", label = "Auto Show/Hide", section = "Behavior",
               get = function() return addon:GetSetting("autoShow") ~= false end,
@@ -447,6 +596,28 @@ function addon:SetupBar()
             end
         end,
     })
+
+    -- Resize handle (only visible in Edit Mode)
+    local resizer = BazCore:MakeResizable(bar, {
+        getScale = function() return addon:GetSetting("barScale") or 100 end,
+        setScale = function(pct)
+            addon:SetSetting("barScale", pct)
+            bar:SetScale(pct / 100)
+        end,
+        minScale = 50,
+        maxScale = 200,
+    })
+    resizer:Hide()
+
+    BazCore:On("BazDungeonFinder", "BAZ_EDITMODE_ENTER", function()
+        resizer:Show()
+    end)
+    BazCore:On("BazDungeonFinder", "BAZ_EDITMODE_EXIT", function()
+        resizer:Hide()
+        AnchorEye()
+        C_Timer.After(0.1, AnchorEye)
+        C_Timer.After(0.5, AnchorEye)
+    end)
 
     SetupMicroMenu()
     SetupMenuFade()
