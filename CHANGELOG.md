@@ -1,5 +1,12 @@
 # BazDungeonFinder Changelog
 
+## 005 - Instance Actions + Polish
+- Teleport button in dungeon mode (teleport in/out of instance)
+- Leave group button repurposed from leave queue X (with confirmation dialog)
+- Bar stays in dungeon mode when teleported out (uses instance group check)
+- Fixed LeaveParty API for Midnight (C_PartyInfo.LeaveParty)
+- Fixed bar layout after exiting instance mode
+
 ## 004 - Dungeon Mode + Fixes
 - Bar now switches to dungeon info mode when inside an instance
 - Shows dungeon name, difficulty, boss progress, and duration timer

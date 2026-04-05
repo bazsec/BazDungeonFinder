@@ -307,12 +307,61 @@ local function RefreshInstanceBar()
     sep1:Hide()
 end
 
+-- Instance action buttons (teleport out / leave group)
+local teleportBtn = CreateFrame("Button", nil, bar)
+teleportBtn:SetSize(16, 16)
+teleportBtn:SetPoint("BOTTOMRIGHT", -8, 8)
+teleportBtn.tex = teleportBtn:CreateTexture(nil, "ARTWORK")
+teleportBtn.tex:SetAllPoints()
+teleportBtn.tex:SetAtlas("Taxi_Frame_Gray")
+teleportBtn.tex:SetVertexColor(0.7, 0.7, 0.7)
+teleportBtn:Hide()
+teleportBtn:SetScript("OnClick", function()
+    local _, instanceType = IsInInstance()
+    local insideDungeon = (instanceType == "party" or instanceType == "raid")
+    LFGTeleport(insideDungeon)
+end)
+teleportBtn:SetScript("OnEnter", function(self)
+    self.tex:SetVertexColor(1, 1, 1)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    local _, instanceType = IsInInstance()
+    local insideDungeon = (instanceType == "party" or instanceType == "raid")
+    GameTooltip:SetText(insideDungeon and "Teleport Out" or "Teleport In")
+    GameTooltip:Show()
+end)
+teleportBtn:SetScript("OnLeave", function(self)
+    self.tex:SetVertexColor(0.7, 0.7, 0.7)
+    GameTooltip:Hide()
+end)
+
+StaticPopupDialogs["BAZDUNGEONFINDER_LEAVE_GROUP"] = {
+    text = "Are you sure you want to leave the instance group?",
+    button1 = "Leave",
+    button2 = "Cancel",
+    OnAccept = function() C_PartyInfo.LeaveParty() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+}
+
 local function EnterInstanceMode()
     inInstance = true
     instanceStartTime = GetTime()
     instanceDeaths = 0
     rolesGroup:Hide()
     sep1:Hide()
+    teleportBtn:Show()
+
+    -- Repurpose leave queue button as leave group
+    leaveBtn:SetScript("OnClick", function()
+        StaticPopup_Show("BAZDUNGEONFINDER_LEAVE_GROUP")
+    end)
+    leaveBtn:SetScript("OnEnter", function(self)
+        self.tex:SetVertexColor(1, 0.4, 0.4)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("Leave Instance Group")
+        GameTooltip:Show()
+    end)
     bar:SetAlpha(addon:GetSetting("barOpacity") or 0.85)
     bar:Show()
     AnchorEye()
@@ -323,12 +372,35 @@ local function ExitInstanceMode()
     inInstance = false
     rolesGroup:Show()
     sep1:Show()
+    teleportBtn:Hide()
+
+    -- Restore leave queue button
+    leaveBtn:SetScript("OnClick", function()
+        if addon.Queue.category then LeaveLFG(addon.Queue.category) end
+    end)
+    leaveBtn:SetScript("OnEnter", function(self)
+        self.tex:SetVertexColor(1, 0.4, 0.4)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("Leave Queue")
+        GameTooltip:Show()
+    end)
+    avgWaitLabel:SetFontObject(GameFontHighlightSmall)
     avgWaitLabel:SetText("Avg Wait:")
+    avgWaitLabel:SetTextColor(DIM_COLOR[1], DIM_COLOR[2], DIM_COLOR[3])
     avgWaitValue:SetTextColor(1, 1, 1)
     queueTimeLabel:SetText("In Queue:")
+    queueTimeLabel:SetTextColor(DIM_COLOR[1], DIM_COLOR[2], DIM_COLOR[3])
+    queueTimeValue:SetText("")
+    LayoutRows()
 
+    addon.Queue:Update()
     if not addon.Queue.isQueued then
         bar:Hide()
+        if addon.DetailsPanel then
+            addon.DetailsPanel:Hide()
+            expandBtn.isExpanded = false
+            expandBtn.tex:SetRotation(0)
+        end
     else
         RefreshBar()
     end
@@ -341,12 +413,11 @@ bar:SetScript("OnUpdate", function(_, dt)
     if elapsed < 1 then return end
     elapsed = 0
 
-    local _, instanceType = IsInInstance()
-    local isInDungeon = (instanceType == "party" or instanceType == "raid")
+    local inInstanceGroup = IsInGroup(LE_PARTY_CATEGORY_INSTANCE)
 
-    if isInDungeon and not inInstance then
+    if inInstanceGroup and not inInstance then
         EnterInstanceMode()
-    elseif not isInDungeon and inInstance then
+    elseif not inInstanceGroup and inInstance then
         ExitInstanceMode()
     end
 
