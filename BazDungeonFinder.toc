@@ -8,7 +8,7 @@
 ## X-Category: Miscellaneous
 ## X-Curse-Project-ID: 1503631
 ## Dependencies: BazCore
-## IconTexture: 134030
+## IconTexture: Interface\AddOns\BazDungeonFinder\icon.png
 ## SavedVariables: BazDungeonFinderSV
 
 Core.lua
