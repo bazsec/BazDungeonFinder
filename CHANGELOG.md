@@ -1,5 +1,8 @@
 # BazDungeonFinder Changelog
 
+## 006
+- Removed debug prints
+
 ## 005 - Instance Actions + Polish
 - Teleport button in dungeon mode (teleport in/out of instance)
 - Leave group button repurposed from leave queue X (with confirmation dialog)
