@@ -1,21 +1,22 @@
-local addon = BazDF
+local addon = BazCore:GetAddon("BazDungeonFinder")
 local PANEL_HEIGHT    = 180
 local PADDING         = 10
 local ROLE_SIZE       = 22
 local WAIT_BAR_HEIGHT = 14
 local PROPOSAL_DURATION = 40
 
-local BG_COLOR     = { 0.05, 0.05, 0.08, 0.90 }
-local EDGE_COLOR   = { 0.3, 0.3, 0.35, 0.8 }
-local DIM          = { 0.5, 0.5, 0.55 }
-local FILLED       = { 0.3, 0.85, 0.3 }
-local EMPTY        = { 0.25, 0.25, 0.28 }
-local TANK_CLR     = { 0.3, 0.5, 1.0 }
-local HEALER_CLR   = { 0.3, 0.9, 0.3 }
-local DPS_CLR      = { 0.9, 0.3, 0.3 }
-local PROPOSAL_CLR = { 0.2, 1.0, 0.2 }
-
-local ROLE_ATLASES = { tank = "roleicon-tank", healer = "roleicon-healer", dps = "roleicon-dps" }
+-- Colors from addon.COLORS (defined in Core.lua)
+local C = addon.COLORS
+local BG_COLOR     = C.bg
+local EDGE_COLOR   = C.edge
+local DIM          = C.dim
+local FILLED       = C.filled
+local EMPTY        = C.empty
+local TANK_CLR     = C.tank
+local HEALER_CLR   = C.healer
+local DPS_CLR      = C.dps
+local PROPOSAL_CLR = C.proposal
+local ROLE_ATLASES = addon.ROLE_ATLASES
 
 local panel = CreateFrame("Frame", "BazDungeonFinderDetails", BazDungeonFinderBar, "BackdropTemplate")
 panel:SetSize(300, PANEL_HEIGHT)
@@ -162,7 +163,7 @@ proposalFrame:SetScript("OnUpdate", function(_, dt)
 end)
 
 -- Refresh (uses Blizzard's formula: found = total - needs)
-function BazDF:RefreshDetails()
+function addon:RefreshDetails()
     if not panel:IsShown() then return end
     local Q = self.Queue
 
@@ -201,5 +202,5 @@ end
 
 panel:SetScript("OnShow", function(self)
     self:SetWidth(BazDungeonFinderBar:GetWidth())
-    BazDF:RefreshDetails()
+    addon:RefreshDetails()
 end)

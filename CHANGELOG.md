@@ -1,5 +1,12 @@
 # BazDungeonFinder Changelog
 
+## 007 - Audit Fixes
+- Replaced BazDF global with BazCore:GetAddon() pattern
+- Consolidated duplicated color constants between UI_Bar and UI_Details
+- Removed unused instanceDeaths state variable
+- Removed manual profile proxy (now auto-wired by BazCore)
+- Category changed to "Baz Suite"
+
 ## 006
 - Removed debug prints
 

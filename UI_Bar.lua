@@ -1,7 +1,7 @@
 -- BazDungeonFinder Bar UI
 -- Queue status bar with Edit Mode integration via BazCore
 
-local addon = BazDF
+local addon = BazCore:GetAddon("BazDungeonFinder")
 local BAR_HEIGHT   = 82
 local ICON_SIZE    = 18
 local PADDING      = 12
@@ -9,17 +9,15 @@ local FADE_TIME    = 0.3
 local EYE_WIDTH    = 48
 local CONTENT_LEFT = EYE_WIDTH + 8
 
-local BG_COLOR     = { 0.05, 0.05, 0.08, 0.88 }
-local EDGE_COLOR   = { 0.3, 0.3, 0.35, 0.8 }
-local ACCENT_COLOR = { 0.3, 0.7, 1.0 }
-local DIM_COLOR    = { 0.5, 0.5, 0.55 }
-local FILLED_CLR   = { 0.3, 0.85, 0.3 }
-local ROLE_ATLASES = { tank = "roleicon-tank", healer = "roleicon-healer", dps = "roleicon-dps" }
-local ROLE_COLORS  = {
-    tank   = { 0.3, 0.5, 1.0 },
-    healer = { 0.3, 0.9, 0.3 },
-    dps    = { 0.9, 0.3, 0.3 },
-}
+-- Colors from addon.COLORS (defined in Core.lua)
+local C = addon.COLORS
+local BG_COLOR     = C.bg
+local EDGE_COLOR   = C.edge
+local ACCENT_COLOR = C.accent
+local DIM_COLOR    = C.dim
+local FILLED_CLR   = C.filled
+local ROLE_ATLASES = addon.ROLE_ATLASES
+local ROLE_COLORS  = { tank = C.tank, healer = C.healer, dps = C.dps }
 
 -- Bar frame
 local bar = CreateFrame("Frame", "BazDungeonFinderBar", UIParent, "BackdropTemplate")
@@ -239,7 +237,6 @@ end
 -- Instance mode state
 local inInstance = false
 local instanceStartTime = 0
-local instanceDeaths = 0
 
 -- Force eye position and z-order
 local function AnchorEye()
@@ -347,7 +344,6 @@ StaticPopupDialogs["BAZDUNGEONFINDER_LEAVE_GROUP"] = {
 local function EnterInstanceMode()
     inInstance = true
     instanceStartTime = GetTime()
-    instanceDeaths = 0
     rolesGroup:Hide()
     sep1:Hide()
     teleportBtn:Show()

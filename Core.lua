@@ -63,36 +63,7 @@ addon = BazCore:RegisterAddon(ADDON_NAME, {
     end,
 })
 
--- db proxy for backward compatibility
-local dbProxy = {}
-local profileProxy = setmetatable({}, {
-    __index = function(_, key)
-        local sv = _G["BazDungeonFinderSV"]
-        if not sv then return nil end
-        local profileName = BazCore:GetActiveProfile(ADDON_NAME)
-        local profile = sv.profiles and sv.profiles[profileName]
-        if profile then return profile[key] end
-        return nil
-    end,
-    __newindex = function(_, key, value)
-        local sv = _G["BazDungeonFinderSV"]
-        if not sv then return end
-        local profileName = BazCore:GetActiveProfile(ADDON_NAME)
-        if not sv.profiles then sv.profiles = {} end
-        if not sv.profiles[profileName] then sv.profiles[profileName] = {} end
-        sv.profiles[profileName][key] = value
-    end,
-})
-dbProxy.profile = profileProxy
-addon.db = dbProxy
-
-function addon:GetSetting(key)
-    return self.db.profile[key]
-end
-
-function addon:SetSetting(key, value)
-    self.db.profile[key] = value
-end
+-- addon.db is auto-wired by BazCore:CreateDBProxy() in RegisterAddon
 
 function addon:ResetPosition()
     self:SetSetting("position", nil)
@@ -113,5 +84,17 @@ StaticPopupDialogs["BAZDUNGEONFINDER_RELOAD"] = {
     hideOnEscape = true,
 }
 
--- Make addon accessible for other files
-BazDF = addon
+-- Shared color constants (used by UI_Bar and UI_Details)
+addon.COLORS = {
+    bg         = { 0.05, 0.05, 0.08, 0.88 },
+    edge       = { 0.3, 0.3, 0.35, 0.8 },
+    accent     = { 0.3, 0.7, 1.0 },
+    dim        = { 0.5, 0.5, 0.55 },
+    filled     = { 0.3, 0.85, 0.3 },
+    empty      = { 0.25, 0.25, 0.28 },
+    proposal   = { 0.2, 1.0, 0.2 },
+    tank       = { 0.3, 0.5, 1.0 },
+    healer     = { 0.3, 0.9, 0.3 },
+    dps        = { 0.9, 0.3, 0.3 },
+}
+addon.ROLE_ATLASES = { tank = "roleicon-tank", healer = "roleicon-healer", dps = "roleicon-dps" }

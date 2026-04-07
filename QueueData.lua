@@ -1,5 +1,6 @@
+local addon = BazCore:GetAddon("BazDungeonFinder")
 local Queue = {}
-BazDF.Queue = Queue
+addon.Queue = Queue
 
 local LFG_CAT_LFD = 1
 local LFG_CAT_RF  = 3
@@ -144,7 +145,7 @@ eventFrame:SetScript("OnEvent", function(_, event)
         Queue.proposalActive = false
     end
     Queue:Update()
-    if BazDF.OnQueueUpdate then
-        BazDF:OnQueueUpdate(event)
+    if addon.OnQueueUpdate then
+        addon:OnQueueUpdate(event)
     end
 end)

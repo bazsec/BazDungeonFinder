@@ -2,7 +2,7 @@
 -- BazCore OptionsPanel integration
 
 local ADDON_NAME = "BazDungeonFinder"
-local addon = BazDF
+local addon = BazCore:GetAddon("BazDungeonFinder")
 
 local function GetOptionsTable()
     return {
