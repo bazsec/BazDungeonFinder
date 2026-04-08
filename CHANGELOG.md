@@ -1,5 +1,9 @@
 # BazDungeonFinder Changelog
 
+## 009 - Unified Profiles
+- Profiles now managed centrally in BazCore settings
+- Removed per-addon Profiles subcategory
+
 ## 007 - Audit Fixes
 - Replaced BazDF global with BazCore:GetAddon() pattern
 - Consolidated duplicated color constants between UI_Bar and UI_Details
