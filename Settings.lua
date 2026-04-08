@@ -4,10 +4,37 @@
 local ADDON_NAME = "BazDungeonFinder"
 local addon = BazCore:GetAddon("BazDungeonFinder")
 
-local function GetOptionsTable()
-    return {
-        name = "BazDungeonFinder",
+---------------------------------------------------------------------------
+-- Landing Page
+---------------------------------------------------------------------------
+
+local function GetLandingPage()
+    return BazCore:CreateLandingPage("BazDungeonFinder", {
         subtitle = "Detached LFG queue status bar",
+        description = "A detached, draggable queue status bar that appears automatically when you enter the LFG queue. " ..
+            "Replaces the micro menu eyeball with a rich, always-visible queue display.",
+        features = "Dungeon name, queue timer, estimated wait, and role fill indicators. " ..
+            "In-dungeon mode with boss kill progress, instance duration, and teleport/leave buttons. " ..
+            "Full Edit Mode integration with BazCore for positioning and scaling.",
+        guide = {
+            { "Queue", "Join a dungeon finder queue and the bar appears automatically" },
+            { "Positioning", "Enter Edit Mode to drag and resize the bar" },
+            { "In Dungeon", "Bar switches to dungeon mode showing boss progress and duration" },
+        },
+        commands = {
+            { "/bdf", "Open settings" },
+            { "/bdf reset", "Reset bar position" },
+        },
+    })
+end
+
+---------------------------------------------------------------------------
+-- Settings Page
+---------------------------------------------------------------------------
+
+local function GetSettingsPage()
+    return {
+        name = "Settings",
         type = "group",
         args = {
             appearanceHeader = {
@@ -37,7 +64,6 @@ local function GetOptionsTable()
                     if addon.Bar then addon.Bar:SetAlpha(val) end
                 end,
             },
-
             barScale = {
                 order = 4,
                 type = "range",
@@ -49,7 +75,6 @@ local function GetOptionsTable()
                     if addon.Bar then addon.Bar:SetScale(val) end
                 end,
             },
-
             behaviorHeader = {
                 order = 10,
                 type = "header",
@@ -63,7 +88,6 @@ local function GetOptionsTable()
                 get = function() return addon:GetSetting("autoShow") ~= false end,
                 set = function(_, val) addon:SetSetting("autoShow", val) end,
             },
-
             displayHeader = {
                 order = 20,
                 type = "header",
@@ -86,14 +110,13 @@ local function GetOptionsTable()
                 set = function(_, val) addon:SetSetting("showEstWait", val) end,
             },
             showRoleIcons = {
-                order = 22,
+                order = 23,
                 type = "toggle",
                 name = "Show Role Icons",
                 desc = "Display your queued role icons on the bar",
                 get = function() return addon:GetSetting("showRoleIcons") ~= false end,
                 set = function(_, val) addon:SetSetting("showRoleIcons", val) end,
             },
-
             uiHeader = {
                 order = 30,
                 type = "header",
@@ -121,7 +144,6 @@ local function GetOptionsTable()
                     StaticPopup_Show("BAZDUNGEONFINDER_RELOAD")
                 end,
             },
-
             actionsHeader = {
                 order = 90,
                 type = "header",
@@ -137,11 +159,21 @@ local function GetOptionsTable()
     }
 end
 
+---------------------------------------------------------------------------
+-- Registration
+---------------------------------------------------------------------------
+
 addon.config = addon.config or {}
 addon.config.onLoad = function(self)
-    BazCore:RegisterOptionsTable(ADDON_NAME, GetOptionsTable)
+    -- Landing page (main)
+    BazCore:RegisterOptionsTable(ADDON_NAME, GetLandingPage)
     BazCore:AddToSettings(ADDON_NAME, "BazDungeonFinder")
 
+    -- Settings subcategory
+    BazCore:RegisterOptionsTable(ADDON_NAME .. "-Settings", GetSettingsPage)
+    BazCore:AddToSettings(ADDON_NAME .. "-Settings", "Settings", ADDON_NAME)
+
+    -- Profiles subcategory
     BazCore:RegisterOptionsTable(ADDON_NAME .. "-Profiles", function()
         return BazCore:GetProfileOptionsTable(ADDON_NAME)
     end)
