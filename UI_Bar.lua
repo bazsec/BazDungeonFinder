@@ -6,8 +6,10 @@ local BAR_HEIGHT   = 82
 local ICON_SIZE    = 18
 local PADDING      = 12
 local FADE_TIME    = 0.3
-local EYE_WIDTH    = 48
-local CONTENT_LEFT = EYE_WIDTH + 8
+-- CONTENT_LEFT is where the non-eye content begins. With the eye removed
+-- (BazDrawer now owns that capture) the content starts at the bar's
+-- normal left padding.
+local CONTENT_LEFT = PADDING
 
 -- Colors from addon.COLORS (defined in Core.lua)
 local C = addon.COLORS
@@ -56,23 +58,10 @@ glowPulse:SetDuration(2.0)
 glowPulse:SetSmoothing("IN_OUT")
 glowAG:Play()
 
--- Eye section (left side)
-local eyeBg = bar:CreateTexture(nil, "BACKGROUND", nil, 1)
-eyeBg:SetPoint("TOPLEFT", 4, -4)
-eyeBg:SetPoint("BOTTOMLEFT", 4, 4)
-eyeBg:SetWidth(EYE_WIDTH)
-eyeBg:SetColorTexture(0.03, 0.03, 0.05, 0.5)
-
-local eyeHolder = CreateFrame("Frame", nil, bar)
-eyeHolder:SetSize(40, 40)
-eyeHolder:SetPoint("CENTER", eyeBg, "CENTER")
-eyeHolder:SetFrameLevel(bar:GetFrameLevel() + 10)
-bar.eyeHolder = eyeHolder
-
-local eyeDivider = bar:CreateTexture(nil, "ARTWORK")
-eyeDivider:SetSize(1, BAR_HEIGHT - 16)
-eyeDivider:SetPoint("LEFT", eyeBg, "RIGHT", 2, 0)
-eyeDivider:SetColorTexture(0.3, 0.3, 0.35, 0.6)
+-- Eye section REMOVED — the QueueStatusButton / QueueStatusButtonIcon eye
+-- graphic is now left alone in the micro menu so BazDrawer's MinimapButtons
+-- widget can adopt it cleanly. BazDungeonFinder no longer reparents, hides,
+-- or anchors any Blizzard queue eye frames.
 
 -- Leave queue button
 local leaveBtn = CreateFrame("Button", nil, bar)
@@ -238,18 +227,6 @@ end
 local inInstance = false
 local instanceStartTime = 0
 
--- Force eye position and z-order
-local function AnchorEye()
-    if QueueStatusButtonIcon and eyeHolder then
-        QueueStatusButtonIcon:SetParent(eyeHolder)
-        QueueStatusButtonIcon:ClearAllPoints()
-        QueueStatusButtonIcon:SetPoint("CENTER", eyeHolder, "CENTER")
-        QueueStatusButtonIcon:SetFrameLevel(bar:GetFrameLevel() + 20)
-        eyeHolder:SetFrameLevel(bar:GetFrameLevel() + 20)
-        QueueStatusButtonIcon:Show()
-    end
-end
-
 local function RefreshInstanceBar()
     local name, instanceType, difficultyID, difficultyName = GetInstanceInfo()
 
@@ -360,7 +337,6 @@ local function EnterInstanceMode()
     end)
     bar:SetAlpha(addon:GetSetting("barOpacity") or 0.85)
     bar:Show()
-    AnchorEye()
     RefreshInstanceBar()
 end
 
@@ -426,8 +402,6 @@ bar:SetScript("OnUpdate", function(_, dt)
     end
 end)
 
-bar:HookScript("OnShow", AnchorEye)
-
 -- Auto-show/hide on queue state change
 function addon:OnQueueUpdate()
     local Q = self.Queue
@@ -460,92 +434,6 @@ function addon:OnSettingChanged(key, value)
     if addon.Queue.isQueued then RefreshBar() end
 end
 
-
--- Micro menu: remove eyeball, resize container, steal animated eye
-local function SetupMicroMenu()
-    if not QueueStatusButton then return end
-
-    -- Remove from micro menu layout (we'll reparent it to our eye holder)
-    QueueStatusButton:ClearAllPoints()
-
-    if MicroMenu and MicroMenu.buttonsToLayout then
-        for i = #MicroMenu.buttonsToLayout, 1, -1 do
-            if MicroMenu.buttonsToLayout[i] == QueueStatusButton then
-                table.remove(MicroMenu.buttonsToLayout, i)
-            end
-        end
-    end
-
-    C_Timer.After(0.1, function()
-        if MicroMenu and MicroMenu.Layout then MicroMenu:Layout() end
-        if MicroMenu and MicroMenuContainer then
-            hooksecurefunc(MicroMenu, "Layout", function()
-                C_Timer.After(0, function()
-                    local w = MicroMenu:GetWidth()
-                    if w and w > 0 then MicroMenuContainer:SetWidth(w) end
-                    MicroMenu:ClearAllPoints()
-                    MicroMenu:SetPoint("CENTER", MicroMenuContainer, "CENTER")
-                end)
-            end)
-            local w = MicroMenu:GetWidth()
-            if w and w > 0 then MicroMenuContainer:SetWidth(w) end
-            MicroMenu:ClearAllPoints()
-            MicroMenu:SetPoint("CENTER", MicroMenuContainer, "CENTER")
-        end
-    end)
-
-    C_Timer.After(0.2, function()
-        if not QueueStatusButtonIcon then return end
-
-        -- Steal just the icon into our eye holder
-        QueueStatusButtonIcon:SetParent(eyeHolder)
-        QueueStatusButtonIcon:ClearAllPoints()
-        QueueStatusButtonIcon:SetPoint("CENTER", eyeHolder, "CENTER")
-        QueueStatusButtonIcon:SetSize(40, 40)
-        QueueStatusButtonIcon:SetFrameLevel(bar:GetFrameLevel() + 20)
-        eyeHolder:SetFrameLevel(bar:GetFrameLevel() + 20)
-        QueueStatusButtonIcon:Show()
-        for _, child in pairs({ QueueStatusButtonIcon:GetChildren() }) do
-            child:SetFrameLevel(bar:GetFrameLevel() + 21)
-        end
-
-        -- Block Blizzard from repositioning the icon
-        hooksecurefunc(QueueStatusButtonIcon, "SetPoint", function(self)
-            if self:GetParent() ~= eyeHolder then
-                self:SetParent(eyeHolder)
-            end
-        end)
-
-        -- Keep the original button at the eye position for tooltip anchoring
-        QueueStatusButton:SetParent(bar)
-        QueueStatusButton:ClearAllPoints()
-        QueueStatusButton:SetPoint("CENTER", eyeHolder, "CENTER")
-        QueueStatusButton:SetSize(40, 40)
-        QueueStatusButton:SetAlpha(0)
-        QueueStatusButton:EnableMouse(false)
-
-        -- Create our own invisible tooltip zone over the eye
-        local tooltipZone = CreateFrame("Frame", nil, bar)
-        tooltipZone:SetAllPoints(eyeHolder)
-        tooltipZone:SetFrameLevel(bar:GetFrameLevel() + 20)
-        tooltipZone:EnableMouse(true)
-        tooltipZone:SetScript("OnEnter", function(self)
-            if not addon:GetSetting("showEyeTooltip") then return end
-            if QueueStatusButton.OnEnter then
-                QueueStatusButton:OnEnter()
-            elseif QueueStatusButton:GetScript("OnEnter") then
-                QueueStatusButton:GetScript("OnEnter")(QueueStatusButton)
-            end
-        end)
-        tooltipZone:SetScript("OnLeave", function()
-            if QueueStatusButton.OnLeave then
-                QueueStatusButton:OnLeave()
-            elseif QueueStatusButton:GetScript("OnLeave") then
-                QueueStatusButton:GetScript("OnLeave")(QueueStatusButton)
-            end
-        end)
-    end)
-end
 
 local function SetupMenuFade()
     if not MicroMenuContainer or not addon:GetSetting("fadeMenuBar") then return end
@@ -635,10 +523,6 @@ function addon:SetupBar()
               end },
             { type = "nudge", section = "Appearance" },
 
-            { type = "checkbox", key = "showEyeTooltip", label = "Eye Tooltip", section = "Display",
-              get = function() return addon:GetSetting("showEyeTooltip") ~= false end,
-              set = function(v) addon:SetSetting("showEyeTooltip", v) end },
-
             { type = "checkbox", key = "autoShow", label = "Auto Show/Hide", section = "Behavior",
               get = function() return addon:GetSetting("autoShow") ~= false end,
               set = function(v) addon:SetSetting("autoShow", v) end },
@@ -681,12 +565,8 @@ function addon:SetupBar()
     end)
     BazCore:On("BazDungeonFinder", "BAZ_EDITMODE_EXIT", function()
         resizer:Hide()
-        AnchorEye()
-        C_Timer.After(0.1, AnchorEye)
-        C_Timer.After(0.5, AnchorEye)
     end)
 
-    SetupMicroMenu()
     SetupMenuFade()
     SetupBagsHide()
     LayoutRows()

@@ -2,7 +2,7 @@
 ## Title: BazDungeonFinder
 ## Notes: Detached LFG queue status bar with rich dungeon and group info
 ## Author: Baz4k
-## Version: 010
+## Version: 011
 ## X-License: GPL v2
 ## Category: Baz Suite
 ## X-Website: https://www.curseforge.com/wow/addons/bazdungeonfinder

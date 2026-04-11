@@ -1,5 +1,12 @@
 # BazDungeonFinder Changelog
 
+## 011 - Remove Eye Capture
+- Removed all QueueStatusButton / QueueStatusButtonIcon reparenting and anchoring — BazDungeonFinder no longer touches Blizzard's dungeon eye
+- Removed the `eyeBg`, `eyeHolder`, and `eyeDivider` frames from the queue bar; the bar's content now starts flush at the left padding
+- Removed the `AnchorEye` helper, its `HookScript` and Edit Mode exit callbacks, and the `SetupMicroMenu` micro-menu hijack entirely
+- Removed the `showEyeTooltip` setting (Core defaults, Settings page, and Edit Mode popup)
+- Rationale: letting Blizzard own the eye leaves it free for BazDrawer's MinimapButtons widget to capture cleanly, and eliminates a whole class of tooltip / frame-level / hooksecurefunc churn in BazDungeonFinder's startup path
+
 ## 010 - Queue Event Toasts
 - Registered as a BazNotificationCenter module — queue events now push toasts through BNC when installed
 - Events covered: queue joined, queue left, group found (proposal show), joining group (proposal succeeded), proposal failed

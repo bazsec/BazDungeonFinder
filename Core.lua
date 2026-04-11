@@ -15,7 +15,6 @@ addon = BazCore:RegisterAddon(ADDON_NAME, {
         autoShow      = true,
         showEstWait   = true,
         showRoleIcons = true,
-        showEyeTooltip = true,
         hideBagsBar   = false,
         fadeMenuBar   = false,
         position      = nil,

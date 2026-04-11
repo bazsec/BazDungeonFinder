@@ -93,14 +93,6 @@ local function GetSettingsPage()
                 type = "header",
                 name = "Display",
             },
-            showEyeTooltip = {
-                order = 21,
-                type = "toggle",
-                name = "Eye Tooltip",
-                desc = "Show queue info tooltip when hovering the eye icon",
-                get = function() return addon:GetSetting("showEyeTooltip") ~= false end,
-                set = function(_, val) addon:SetSetting("showEyeTooltip", val) end,
-            },
             showEstWait = {
                 order = 22,
                 type = "toggle",
