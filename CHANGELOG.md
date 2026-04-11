@@ -1,5 +1,10 @@
 # BazDungeonFinder Changelog
 
+## 010 - Queue Event Toasts
+- Registered as a BazNotificationCenter module — queue events now push toasts through BNC when installed
+- Events covered: queue joined, queue left, group found (proposal show), joining group (proposal succeeded), proposal failed
+- Silent no-op if BNC isn't installed
+
 ## 009 - Unified Profiles
 - Profiles now managed centrally in BazCore settings
 - Removed per-addon Profiles subcategory

@@ -60,6 +60,13 @@ addon = BazCore:RegisterAddon(ADDON_NAME, {
 
     onReady = function(self)
         self:SetupBar()
+
+        -- Register as a notification module so queue events (pop, group
+        -- found, proposal failed, join, leave) can push toasts via BNC.
+        BazCore:RegisterNotificationModule("BazDungeonFinder", {
+            label = "BazDungeonFinder",
+            icon = "Interface\\LFGFrame\\LFGIcon-Random",
+        })
     end,
 })
 

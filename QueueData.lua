@@ -134,17 +134,48 @@ eventFrame:RegisterEvent("LFG_COMPLETION_REWARD")
 eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
+---------------------------------------------------------------------------
+-- Notification helper — routes to BazNotificationCenter via BazCore
+---------------------------------------------------------------------------
+
+local function Notify(title, message, priority)
+    BazCore:PushNotification({
+        module   = "BazDungeonFinder",
+        title    = title,
+        message  = message or "",
+        icon     = "Interface\\LFGFrame\\LFGIcon-Random",
+        priority = priority or "normal",
+    })
+end
+
 eventFrame:SetScript("OnEvent", function(_, event)
     if event == "LFG_PROPOSAL_SHOW" then
         Queue.proposalActive = true
-    elseif event == "LFG_PROPOSAL_FAILED" or event == "LFG_PROPOSAL_DONE"
-        or event == "LFG_PROPOSAL_SUCCEEDED" then
+        Notify("Group Found!", Queue.dungeonName ~= "" and Queue.dungeonName or "Accept to enter", "high")
+    elseif event == "LFG_PROPOSAL_SUCCEEDED" then
+        Queue.proposalActive = false
+        Notify("Joining Group", Queue.dungeonName ~= "" and Queue.dungeonName or "")
+    elseif event == "LFG_PROPOSAL_FAILED" then
+        Queue.proposalActive = false
+        Notify("Proposal Failed", "Someone declined the group", "high")
+    elseif event == "LFG_PROPOSAL_DONE" then
         Queue.proposalActive = false
     elseif event == "LFG_COMPLETION_REWARD" or event == "PLAYER_ENTERING_WORLD" then
-        -- Entering dungeon or completing it — clear queue state
         Queue.proposalActive = false
     end
+
+    -- Detect queue start / cancel transitions by comparing before/after
+    local wasQueued = Queue.isQueued
     Queue:Update()
+    local isQueuedNow = Queue.isQueued
+
+    if not wasQueued and isQueuedNow then
+        Notify("Queue Joined", Queue.dungeonName ~= "" and Queue.dungeonName or "Waiting for group")
+    elseif wasQueued and not isQueuedNow and event ~= "LFG_PROPOSAL_SUCCEEDED"
+        and event ~= "LFG_COMPLETION_REWARD" and event ~= "PLAYER_ENTERING_WORLD" then
+        Notify("Queue Left", "")
+    end
+
     if addon.OnQueueUpdate then
         addon:OnQueueUpdate(event)
     end
