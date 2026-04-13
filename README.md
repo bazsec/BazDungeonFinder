@@ -1,131 +1,74 @@
-<h1 align="center">BazDungeonFinder</h1>
+> **Warning: Requires [BazCore](https://www.curseforge.com/wow/addons/bazcore).** If you use the CurseForge app, it will be installed automatically. Manual users must install BazCore separately.
 
-<p align="center">
-  <strong>Detached LFG queue status bar for World of Warcraft</strong><br/>
-  Replaces the micro menu eyeball with a rich, always-visible queue display.
-</p>
+# BazDungeonFinder
 
-<p align="center">
-  <img src="https://img.shields.io/badge/WoW-12.0%20Midnight-blue" alt="WoW Version"/>
-  <img src="https://img.shields.io/badge/License-GPL%20v2-green" alt="License"/>
-  <img src="https://img.shields.io/github/v/tag/bazsec/BazDungeonFinder?label=Version&color=orange" alt="Version"/>
-</p>
+![WoW](https://img.shields.io/badge/WoW-12.0_Midnight-blue) ![License](https://img.shields.io/badge/License-GPL_v2-green) ![Version](https://img.shields.io/github/v/tag/bazsec/BazDungeonFinder?label=Version&color=orange)
 
----
+A detached LFG queue status bar with rich dungeon and group info.
 
-## What is BazDungeonFinder?
+BazDungeonFinder gives you a dedicated, always-visible queue status bar that shows everything you need to know about your current dungeon queue - role fill status, wait estimates, queue timer, dungeon name, and instance details. When a group is found, the bar transforms into a proposal view. Inside a dungeon, it shows instance info with a teleport in/out button.
 
-BazDungeonFinder gives you a detached, draggable queue status bar that appears automatically when you enter the LFG queue. It steals the animated eye from Blizzard's micro menu and places it on a proper status bar with live queue data — role fill status, wait times, dungeon name, and a group-found countdown.
+> **Note:** A widget version of Dungeon Finder is also available in [BazWidgets](https://www.curseforge.com/wow/addons/bazwidgets) for users who prefer it docked inside [BazWidgetDrawers](https://www.curseforge.com/wow/addons/bazwidgetdrawers). The widget version is dormant - it only appears when you're queued.
 
-No more squinting at the tiny micro menu eyeball to check your queue.
-
----
+***
 
 ## Features
 
-### Queue Status Bar
-- Appears automatically when you join a dungeon or raid finder queue
-- Fades in/out smoothly on queue start/end
-- Shows **dungeon name**, **queue timer**, **average wait estimate**
-- **Role fill indicators** — tank, healer, DPS counts with color-coded status (green = filled)
-- **"Group Found!"** notification with green glow when a group is ready
-- Draggable and lockable — position it anywhere on screen
-- Right-click context menu for quick settings access
+*   **Queue status bar** with role fill indicators (tank / healer / DPS)
+*   **Wait time estimates** - your estimated wait and average wait
+*   **Live queue timer** showing how long you've been in queue
+*   **Dungeon name** and instance type display
+*   **Group Found** proposal view when a group is ready
+*   **Instance mode** with dungeon info and teleport in/out button
+*   **BNC integration** - queue events push toasts through BazNotificationCenter when installed
+*   **Configurable** via BazCore settings panel
+*   **Profile support** via BazCore
 
-### Animated Eye
-- Steals the LFG animated eye from Blizzard's micro menu
-- Displayed prominently on the left side of the bar
-- Micro menu is automatically resized to fill the gap
-
-### Expandable Details Panel
-- Click the chevron to expand a details panel below the bar
-- **Group composition** — visual role slots showing which roles are filled
-- **Dungeon info** — name and type (Dungeon / Raid Finder)
-- **Per-role wait time bars** — tank, healer, and DPS estimated waits with progress bars
-- **Proposal countdown** — green progress bar when a group is found
-
-### Leave Queue
-- Red X button to instantly leave the queue
-- No need to dig through the LFG UI
-
-### UI Cleanup Options
-- **Hide Bags Bar** — removes the bag slot buttons from the UI
-- **Fade Micro Menu** — hides the micro menu until you mouse over it
-
----
-
-## Settings
-
-Open settings via `/bdf settings` or right-click the bar → Settings.
-
-### Appearance
-| Setting | Description |
-|---------|-------------|
-| Bar Width | Adjust bar width (200-500px) |
-| Bar Opacity | Adjust bar transparency (30-100%) |
-
-### Behavior
-| Setting | Description |
-|---------|-------------|
-| Lock Position | Prevent the bar from being dragged |
-| Auto Show/Hide | Automatically show when queued, hide when not |
-
-### Display
-| Setting | Description |
-|---------|-------------|
-| Show Estimated Wait | Display the estimated wait time |
-| Show Role Icons | Display your queued role icons |
-
-### UI Elements
-| Setting | Description |
-|---------|-------------|
-| Hide Bags Bar | Hide the bag slot buttons (requires reload) |
-| Fade Micro Menu | Hide the micro menu until hovered (requires reload) |
-
----
+***
 
 ## Slash Commands
 
 | Command | Description |
-|---------|-------------|
-| `/bdf` | Show all commands |
-| `/bdf lock` | Lock bar position |
-| `/bdf unlock` | Unlock bar position |
-| `/bdf reset` | Reset bar position |
-| `/bdf settings` | Open settings panel |
-| `/bdf show` | Show the bar |
-| `/bdf hide` | Hide the bar |
+| --- | --- |
+| `/bdf` | Open settings panel |
 
----
-
-## Installation
-
-### CurseForge / WoW Addon Manager
-Search for **BazDungeonFinder** in your addon manager of choice.
-
-### Manual Installation
-1. Download the latest release
-2. Extract to `World of Warcraft/_retail_/Interface/AddOns/BazDungeonFinder/`
-3. Restart WoW or `/reload`
-
----
+***
 
 ## Compatibility
 
-| | |
-|---|---|
-| **WoW Version** | Retail 12.0.1 (Midnight) |
-| **Dependencies** | None |
-| **Standalone** | No external libraries required |
+*   **WoW Version:** Retail 12.0 (Midnight)
+*   **Combat Safe:** No secure frame manipulation
+*   **BazNotificationCenter:** Queue events push toasts when BNC is installed
 
----
+***
+
+## Dependencies
+
+**Required:**
+
+*   [BazCore](https://www.curseforge.com/wow/addons/bazcore) - shared framework for Baz Suite addons
+
+**Optional:**
+
+*   [BazNotificationCenter](https://www.curseforge.com/wow/addons/baznotificationcenter) - queue event toasts
+
+***
+
+## Part of the Baz Suite
+
+BazDungeonFinder is part of the **Baz Suite** of addons, all built on the [BazCore](https://www.curseforge.com/wow/addons/bazcore) framework:
+
+*   **[BazBars](https://www.curseforge.com/wow/addons/bazbars)** - Custom extra action bars
+*   **[BazWidgetDrawers](https://www.curseforge.com/wow/addons/bazwidgetdrawers)** - Slide-out widget drawer
+*   **[BazWidgets](https://www.curseforge.com/wow/addons/bazwidgets)** - Widget pack for BazWidgetDrawers
+*   **[BazNotificationCenter](https://www.curseforge.com/wow/addons/baznotificationcenter)** - Toast notification system
+*   **[BazLootNotifier](https://www.curseforge.com/wow/addons/bazlootnotifier)** - Animated loot popups
+*   **[BazFlightZoom](https://www.curseforge.com/wow/addons/bazflightzoom)** - Auto zoom on flying mounts
+*   **[BazMap](https://www.curseforge.com/wow/addons/bazmap)** - Resizable map and quest log window
+*   **[BazMapPortals](https://www.curseforge.com/wow/addons/bazmapportals)** - Mage portal/teleport map pins
+
+***
 
 ## License
 
-BazDungeonFinder is licensed under the [GNU General Public License v2](LICENSE) (GPL v2).
-
----
-
-<p align="center">
-  <sub>Built by <strong>Baz4k</strong></sub>
-</p>
+BazDungeonFinder is licensed under the **GNU General Public License v2** (GPL v2).
